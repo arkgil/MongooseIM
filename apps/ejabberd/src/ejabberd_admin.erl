@@ -168,54 +168,55 @@ commands() ->
 
 -spec join_cluster(string()) -> {ok, string()} | {pang, string()} | {mnesia_error, string()} | {error, string()}.
 join_cluster(NodeString) ->
-  NodeAtom = list_to_atom(NodeString),
-  NodeList = mnesia:system_info(running_db_nodes),
-  case lists:member(NodeAtom, NodeList) of
-    true ->
-      String = io_lib:format("The node ~s has already joined the cluster~n", [NodeString]),
-      {ok, String};
-    _ ->
-      do_join_cluster(NodeAtom)
-  end.
+    NodeAtom = list_to_atom(NodeString),
+    NodeList = mnesia:system_info(running_db_nodes),
+    case lists:member(NodeAtom, NodeList) of
+        true ->
+            String = io_lib:format("The node ~s has already joined the cluster~n", [NodeString]),
+            {ok, String};
+        _ ->
+            do_join_cluster(NodeAtom)
+    end.
 
 do_join_cluster(Node) ->
-  try mongoose_cluster:join(Node) of
-    ok ->
-      String = io_lib:format("You have successfully joined the node ~p to
+    try mongoose_cluster:join(Node) of
+        ok ->
+            String = io_lib:format("You have successfully joined the node ~p to
       the cluster with node member ~p~n", [node(), Node]),
-      {ok, String}
-  catch
-    error:pang ->
-      String = io_lib:format("Timeout while attempting to connect to node ~s~n", [Node]),
-      {pang, String};
-    error:{cant_get_storage_type, {T, E, R}} ->
-      String = io_lib:format("Cannot get storage type for table ~p~n. Reason: ~p:~p", [T, E, R]),
-      {mnesia_error, String};
-    E:R ->
-      {error, {E, R}}
-  end.
+            {ok, String}
+    catch
+        error:pang ->
+            String = io_lib:format("Timeout while attempting to connect to node ~s~n", [Node]),
+            {pang, String};
+        error:{cant_get_storage_type, {T, E, R}} ->
+            String = io_lib:format("Cannot get storage type for table ~p~n. Reason: ~p:~p", [T, E, R]),
+            {mnesia_error, String};
+        E:R ->
+            {error, {E, R}}
+    end.
 
 -spec leave_cluster() -> {ok, string()} | {error, term()} | {not_in_cluster, string()}.
 leave_cluster() ->
-  NodeList = mnesia:system_info(running_db_nodes),
-  case NodeList of
-    [] ->
-      String = io_lib:format("The node ~p is not in the cluster~n", [node()]),
-      {not_in_cluster, String};
-    _ ->
-      do_leave_cluster()
-  end.
+    NodeList = mnesia:system_info(running_db_nodes),
+    ThisNode = node(),
+    case NodeList of
+        [ThisNode] ->
+            String = io_lib:format("The node ~p is not in the cluster~n", [node()]),
+            {not_in_cluster, String};
+        _ ->
+            do_leave_cluster()
+    end.
 
 do_leave_cluster() ->
-  try mongoose_cluster:leave() of
-    ok ->
-      String = io_lib:format("You have successfully left the node ~p from
+    try mongoose_cluster:leave() of
+        ok ->
+            String = io_lib:format("You have successfully left the node ~p from
       the cluster~n", [node()]),
-      {ok, String}
-  catch
-    E:R ->
-      {error, {E, R}}
-  end.
+            {ok, String}
+    catch
+        E:R ->
+            {error, {E, R}}
+    end.
 
 
 -spec status() -> {'ejabberd_not_running', io_lib:chars()} | {'ok', io_lib:chars()}.
